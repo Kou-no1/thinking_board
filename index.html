@@ -80,6 +80,9 @@ textarea.mi{resize:none;line-height:1.6}
 .np.del{background:#FFF0ED;color:var(--danger);border-color:var(--danger)}
 .np.ok{background:var(--primary);color:#fff;border:none}
 
+/* Minimap viewport indicator */
+#minimap-canvas { display:block; }
+
 /* Board tabs */
 .board-tabs{display:flex;gap:4px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
 .board-tab{padding:8px 18px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
@@ -91,9 +94,10 @@ textarea.mi{resize:none;line-height:1.6}
   radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px);
   background-size:24px 24px;
   background-color:#FAF8F3;
-  min-height:60vh;
+  min-height:50vh;
+  max-height:calc(100vh - 160px);
 }
-.board-canvas{position:relative;width:2000px;height:1400px;transform-origin:0 0}
+.board-canvas{position:relative;width:1200px;height:900px;transform-origin:0 0}
 
 /* Sticky note */
 .note{
@@ -162,14 +166,16 @@ textarea.mi{resize:none;line-height:1.6}
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.cluster-handles{display:none;position:absolute;inset:0;pointer-events:auto}
-.cluster.editable .cluster-handles{display:block;cursor:move}
-.cluster.editable{border-color:var(--primary);background:rgba(76,175,154,.08)}
+.cluster-handles{display:none}
+.cluster.editable{border-color:var(--primary);background:rgba(76,175,154,.08);cursor:move}
 .handle-resize{
-  position:absolute;bottom:-8px;right:-8px;
-  width:20px;height:20px;border-radius:50%;
-  background:var(--primary);border:2px solid #fff;
+  position:absolute;bottom:-10px;right:-10px;
+  width:26px;height:26px;border-radius:50%;
+  background:var(--primary);border:3px solid #fff;
   cursor:nwse-resize;
+  z-index:10;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  touch-action:none;
 }
 .cluster-delete{
   position:absolute;top:-12px;right:-8px;
@@ -383,8 +389,28 @@ textarea.mi{resize:none;line-height:1.6}
   <!-- Step2: Board view -->
   <div id="s-board-view" style="display:none;flex-direction:column;flex:1;overflow:hidden">
     <div class="board-tabs" id="s-board-tabs"></div>
-    <div class="board-area" id="s-board-area">
-      <div class="board-canvas" id="s-board-canvas"></div>
+    <div style="display:flex;flex:1;overflow:hidden;min-height:0">
+      <!-- ミニマップ -->
+      <div id="minimap-wrap" style="
+        width:110px;flex:none;
+        background:#F0EDE8;
+        border-right:1px solid var(--border);
+        display:flex;flex-direction:column;
+        align-items:center;
+        padding:8px 6px;
+        gap:6px;
+        overflow:hidden;
+      ">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.3px">ぜんたい</div>
+        <canvas id="minimap-canvas" width="98" height="74"
+          style="border-radius:6px;border:1px solid var(--border);background:#FAF8F3;cursor:pointer;touch-action:none"
+        ></canvas>
+        <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.5" id="minimap-count">付箋 0枚</div>
+      </div>
+      <!-- メインボード -->
+      <div class="board-area" id="s-board-area" style="flex:1;min-width:0">
+        <div class="board-canvas" id="s-board-canvas"></div>
+      </div>
     </div>
   </div>
 
@@ -748,7 +774,111 @@ else if (MODE === 'student') {
     state.notes.filter(function(n){ return n.boardId === currentBoardId && !n.hidden; }).forEach(function(n){
       canvas.appendChild(buildNoteEl(n, false));
     });
+    // ミニマップ更新
+    renderMinimap();
   }
+
+  // ── ミニマップ ──────────────────────────────────────────
+  var BOARD_W = 1200, BOARD_H = 900;
+  var MM_W = 98, MM_H = 74;
+
+  function renderMinimap(){
+    var mc = document.getElementById('minimap-canvas');
+    if (!mc) return;
+    var ctx = mc.getContext('2d');
+    var scaleX = MM_W / BOARD_W;
+    var scaleY = MM_H / BOARD_H;
+
+    // background
+    ctx.clearRect(0, 0, MM_W, MM_H);
+    ctx.fillStyle = '#FAF8F3';
+    ctx.fillRect(0, 0, MM_W, MM_H);
+
+    // dot grid (subtle)
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    for (var gx = 0; gx < MM_W; gx += 8) {
+      for (var gy = 0; gy < MM_H; gy += 6) {
+        ctx.fillRect(gx, gy, 1, 1);
+      }
+    }
+
+    // clusters
+    state.clusters.filter(function(c){ return c.boardId === currentBoardId; }).forEach(function(c){
+      ctx.fillStyle = 'rgba(76,175,154,0.15)';
+      ctx.strokeStyle = 'rgba(76,175,154,0.4)';
+      ctx.lineWidth = 0.5;
+      var rx = c.x * scaleX, ry = c.y * scaleY;
+      var rw = c.w * scaleX, rh = c.h * scaleY;
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, rw, rh, 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    // notes as colored dots
+    var NOTE_COLORS = { r:'#E8654A', b:'#4A90D9', y:'#F5A623', g:'#4CAF9A' };
+    var dotW = Math.max(6, 140 * scaleX);
+    var dotH = Math.max(5, 100 * scaleY);
+    state.notes.filter(function(n){ return n.boardId === currentBoardId && !n.hidden; }).forEach(function(n){
+      var nx = n.x * scaleX;
+      var ny = n.y * scaleY;
+      ctx.fillStyle = NOTE_COLORS[n.colorId] || '#999';
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.roundRect(nx, ny, dotW, dotH, 1.5);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // viewport indicator (white rect with border)
+    var area = document.getElementById('s-board-area');
+    if (area) {
+      var vx = area.scrollLeft * scaleX;
+      var vy = area.scrollTop  * scaleY;
+      var vw = area.clientWidth  * scaleX;
+      var vh = area.clientHeight * scaleY;
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillStyle   = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(
+        Math.max(0, vx), Math.max(0, vy),
+        Math.min(vw, MM_W - vx), Math.min(vh, MM_H - vy), 2
+      );
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // note count
+    var n = state.notes.filter(function(n){ return n.boardId===currentBoardId && !n.hidden; }).length;
+    var countEl = document.getElementById('minimap-count');
+    if (countEl) countEl.textContent = '付箋 ' + n + '枚';
+  }
+
+  // ミニマップをタップ→その位置にスクロール
+  document.addEventListener('DOMContentLoaded', function(){
+    var mc = document.getElementById('minimap-canvas');
+    if (!mc) return;
+    function mmTap(e){
+      e.preventDefault();
+      var rect = mc.getBoundingClientRect();
+      var cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      var cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      var area = document.getElementById('s-board-area');
+      if (!area) return;
+      var targetX = (cx / MM_W) * BOARD_W - area.clientWidth  / 2;
+      var targetY = (cy / MM_H) * BOARD_H - area.clientHeight / 2;
+      area.scrollTo({ left: Math.max(0, targetX), top: Math.max(0, targetY), behavior: 'smooth' });
+    }
+    mc.addEventListener('click', mmTap);
+    mc.addEventListener('touchend', mmTap);
+
+    // スクロール時もミニマップ更新
+    var area = document.getElementById('s-board-area');
+    if (area) {
+      area.addEventListener('scroll', renderMinimap, { passive: true });
+    }
+  });
 
   function buildNoteEl(n, isTeacher){
     const el = document.createElement('div');
@@ -926,19 +1056,30 @@ else if (MODE === 'student') {
   window.submitNote = async function(){
     const text = document.getElementById('compose-text').value.trim();
     if (!text) { toast('なにか書いてね'); return; }
-    const board = document.getElementById('s-board-canvas');
-    const area = document.getElementById('s-board-area');
-    const cx = area.scrollLeft + area.offsetWidth/2 - 70 + (Math.random()*40-20);
-    const cy = area.scrollTop  + area.offsetHeight/2 - 50 + (Math.random()*40-20);
     const now = new Date().toISOString();
+
+    // 上部から左→右に並べる（1行8枚、折り返し）
+    const NOTE_W = 156; // note width + gap
+    const NOTE_H = 116; // note height + gap
+    const COLS   = 7;
+    const PAD    = 20;
+    const boardNotes = state.notes.filter(function(n){
+      return n.boardId === currentBoardId && !n.hidden;
+    });
+    const idx = boardNotes.length;
+    const col = idx % COLS;
+    const row = Math.floor(idx / COLS);
+    const px = PAD + col * NOTE_W;
+    const py = PAD + row * NOTE_H;
+
     const note = {
       id: Date.now() + '_' + Math.floor(Math.random()*1000),
       authorId: myId,
       boardId: currentBoardId,
       colorId: composeColor,
       text: text,
-      x: Math.max(20, cx),
-      y: Math.max(20, cy),
+      x: px,
+      y: py,
       clusterId: null,
       pinned: false,
       hidden: false,
@@ -1110,13 +1251,12 @@ else if (MODE === 'teacher') {
     lbl.addEventListener('click', function(e){ e.stopPropagation(); openClusterModal(c.id); });
     el.appendChild(lbl);
 
-    const handles = document.createElement('div');
-    handles.className = 'cluster-handles';
-    el.appendChild(handles);
-    makeClusterDraggable(el, handles, c);
+    // el全体でドラッグ（ラベルとリサイズ以外）
+    makeClusterDraggable(el, c);
 
     const resize = document.createElement('div');
     resize.className = 'handle-resize';
+    resize.title = 'ドラッグしてサイズを変える';
     el.appendChild(resize);
     makeClusterResizable(el, resize, c);
 
@@ -1175,19 +1315,26 @@ else if (MODE === 'teacher') {
     el.addEventListener('touchstart', onStart, {passive:false});
   }
 
-  function makeClusterDraggable(el, handle, cluster){
-    let sx, sy, ox, oy;
+  function makeClusterDraggable(el, cluster){
+    let sx, sy, ox, oy, resizing=false;
     function onStart(e){
+      // リサイズハンドルからのイベントは無視
+      if (e.target && e.target.classList.contains('handle-resize')) return;
+      if (e.target && e.target.classList.contains('cluster-label')) return;
+      if (e.target && e.target.classList.contains('cluster-delete')) return;
+      resizing = false;
       const p = getPoint(e);
       sx = p.x; sy = p.y;
       ox = cluster.x; oy = cluster.y;
       e.preventDefault();
+      e.stopPropagation();
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onEnd);
       document.addEventListener('touchmove', onMove, {passive:false});
       document.addEventListener('touchend', onEnd);
     }
     function onMove(e){
+      if (resizing) return;
       const p = getPoint(e);
       cluster.x = Math.max(0, ox + p.x - sx);
       cluster.y = Math.max(0, oy + p.y - sy);
@@ -1200,10 +1347,12 @@ else if (MODE === 'teacher') {
       document.removeEventListener('mouseup', onEnd);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
-      gasPost({action:'upsertCluster', room:ROOM, cluster:cluster, actorId:'teacher'});
+      if (!resizing) {
+        gasPost({action:'upsertCluster', room:ROOM, cluster:cluster, actorId:'teacher'});
+      }
     }
-    handle.addEventListener('mousedown', onStart);
-    handle.addEventListener('touchstart', onStart, {passive:false});
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('touchstart', onStart, {passive:false});
   }
 
   function makeClusterResizable(el, handle, cluster){
@@ -1212,7 +1361,10 @@ else if (MODE === 'teacher') {
       const p = getPoint(e);
       sx = p.x; sy = p.y;
       ow = cluster.w; oh = cluster.h;
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();  // ドラッグへの伝播を止める
+      // ドラッグ側に resizing フラグを渡す手段として el にマーク
+      el._resizing = true;
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onEnd);
       document.addEventListener('touchmove', onMove, {passive:false});
@@ -1220,13 +1372,15 @@ else if (MODE === 'teacher') {
     }
     function onMove(e){
       const p = getPoint(e);
-      cluster.w = Math.max(120, ow + p.x - sx);
-      cluster.h = Math.max(100, oh + p.y - sy);
+      cluster.w = Math.max(80, ow + p.x - sx);
+      cluster.h = Math.max(70, oh + p.y - sy);
       el.style.width  = cluster.w + 'px';
       el.style.height = cluster.h + 'px';
       e.preventDefault();
+      e.stopPropagation();
     }
     function onEnd(){
+      el._resizing = false;
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onEnd);
       document.removeEventListener('touchmove', onMove);
@@ -1268,13 +1422,21 @@ else if (MODE === 'teacher') {
     const text = prompt('付箋の内容を入力してください');
     if (!text) return;
     const now = new Date().toISOString();
+    // 上部グリッドに配置（クリック位置は無視して整列）
+    const NOTE_W = 156, NOTE_H = 116, COLS = 7, PAD = 20;
+    const boardNotes = state.notes.filter(function(n){
+      return n.boardId === currentBoardId && !n.hidden;
+    });
+    const idx = boardNotes.length;
+    const px = PAD + (idx % COLS) * NOTE_W;
+    const py = PAD + Math.floor(idx / COLS) * NOTE_H;
     const note = {
       id: Date.now() + '_t',
       authorId: 'teacher',
       boardId: currentBoardId,
       colorId: 'g',
       text: text,
-      x: x, y: y,
+      x: px, y: py,
       clusterId: null, pinned: false, hidden: false,
       createdAt: now, updatedAt: now,
     };
