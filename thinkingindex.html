@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>シンキングボード</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F0EDE8; --surface:#FFFFFF;
+  --text:#2C2A27; --muted:#8A8680;
+  --border:#E0DDD8; --shadow:0 2px 12px rgba(0,0,0,.08);
+  --primary:#4CAF9A; --danger:#E8654A; --warn:#F5A623;
+  --note-r:#FFD4CC; --note-b:#CFE4F7; --note-y:#FFEFC1; --note-g:#D7EEDF;
+  --note-r-d:#E8654A; --note-b-d:#4A90D9; --note-y-d:#F5A623; --note-g-d:#4CAF9A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'M PLUS Rounded 1c','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── SHARED ── */
+.btn{padding:10px 18px;border-radius:12px;border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:transform .12s}
+.btn:active{transform:scale(.95)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:10px 22px;border-radius:100px;font-size:14px;font-weight:700;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:18px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:700}
+.mi{border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;width:100%;outline:none;background:#FAFAFA}
+.mi:focus{border-color:var(--primary);background:#fff}
+textarea.mi{resize:none;line-height:1.6}
+
+/* ════ SETUP ════════════════════════════════════════════ */
+#setup-screen{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+.setup-card{background:var(--surface);border-radius:20px;padding:28px;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:18px}
+.setup-logo{font-size:26px;font-weight:800;text-align:center}
+.setup-logo span{color:var(--primary)}
+.setup-section{display:flex;flex-direction:column;gap:8px}
+.setup-label{font-size:13px;font-weight:700;color:var(--muted)}
+
+/* color palette editor */
+.palette-edit{display:flex;flex-direction:column;gap:8px}
+.palette-row{display:flex;align-items:center;gap:10px}
+.color-dot{width:34px;height:34px;border-radius:10px;flex:none;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.palette-row input{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;background:#FAFAFA}
+.palette-row input:focus{border-color:var(--primary);background:#fff}
+
+/* board count selector */
+.group-count{display:flex;gap:6px;flex-wrap:wrap}
+.gc-btn{flex:1;min-width:60px;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:#FAFAFA;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.gc-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* name mode selector */
+.namemode{display:flex;gap:8px}
+.nm-btn{flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:#FAFAFA;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nm-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.nm-btn .icon{font-size:24px}
+
+/* ════ STUDENT APP ══════════════════════════════════════ */
+#student-app{display:none;flex-direction:column;min-height:100vh}
+.s-header{padding:12px 16px;background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.s-logo{font-size:16px;font-weight:800;white-space:nowrap}
+.s-logo span{color:var(--primary)}
+.s-id-badge{padding:4px 12px;background:#EEF7F4;border:1.5px solid var(--primary);border-radius:20px;font-size:12px;font-weight:700;color:var(--primary)}
+.s-question{flex:1;min-width:200px;background:#FFF9F0;border:1.5px solid #F5D98A;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;color:#7A5F00}
+
+/* Name entry (number / anon) */
+#s-name-gate{display:none;flex-direction:column;align-items:center;gap:18px;padding:30px 20px;min-height:80vh;justify-content:center}
+.numgate{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:320px}
+.numgate label{font-size:16px;font-weight:700;color:var(--muted);text-align:center}
+.num-disp{width:100px;height:100px;border-radius:16px;border:2.5px solid var(--border);background:var(--surface);font-size:46px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:220px}
+.np{height:54px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-size:22px;font-weight:700;cursor:pointer;font-family:inherit}
+.np:active{transform:scale(.92);background:var(--bg)}
+.np.del{background:#FFF0ED;color:var(--danger);border-color:var(--danger)}
+.np.ok{background:var(--primary);color:#fff;border:none}
+
+/* Board tabs */
+.board-tabs{display:flex;gap:4px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
+.board-tab{padding:8px 18px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.board-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.board-tab.class-tab.active{background:var(--primary);color:#fff}
+
+/* The board area */
+.board-area{flex:1;position:relative;overflow:auto;background:
+  radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size:24px 24px;
+  background-color:#FAF8F3;
+  min-height:60vh;
+}
+.board-canvas{position:relative;width:2000px;height:1400px;transform-origin:0 0}
+
+/* Sticky note */
+.note{
+  position:absolute;
+  width:140px;min-height:100px;
+  padding:12px 12px 26px;
+  border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.08);
+  font-size:13px;
+  line-height:1.45;
+  font-weight:500;
+  word-wrap:break-word;
+  cursor:default;
+  user-select:none;
+  -webkit-user-select:none;
+  transform:rotate(-1deg);
+  transition:box-shadow .15s, transform .15s;
+}
+.note.dragging{
+  z-index:1000;
+  box-shadow:0 12px 32px rgba(0,0,0,.28);
+  transform:rotate(-2deg) scale(1.04);
+  cursor:grabbing;
+}
+.note.can-drag{cursor:grab}
+.note.can-drag:active{cursor:grabbing}
+.note-author{
+  position:absolute;
+  bottom:6px;
+  right:8px;
+  font-size:10px;
+  font-weight:700;
+  opacity:.55;
+}
+.note-pin{position:absolute;top:-6px;left:8px;font-size:16px;transform:rotate(-15deg)}
+.note-delete{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.note.can-delete .note-delete{display:flex}
+
+.note.color-r{background:var(--note-r)}
+.note.color-b{background:var(--note-b)}
+.note.color-y{background:var(--note-y)}
+.note.color-g{background:var(--note-g)}
+
+/* Cluster rect */
+.cluster{
+  position:absolute;
+  border-radius:14px;
+  border:3px dashed rgba(0,0,0,.15);
+  background:rgba(255,255,255,.4);
+  pointer-events:none;
+}
+.cluster-label{
+  position:absolute;
+  top:-14px;
+  left:14px;
+  background:var(--surface);
+  padding:3px 12px;
+  border-radius:20px;
+  border:1.5px solid var(--border);
+  font-size:12px;
+  font-weight:700;
+  pointer-events:auto;
+  cursor:pointer;
+  white-space:nowrap;
+  max-width:200px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.cluster-handles{display:none;position:absolute;inset:0;pointer-events:auto}
+.cluster.editable .cluster-handles{display:block;cursor:move}
+.cluster.editable{border-color:var(--primary);background:rgba(76,175,154,.08)}
+.handle-resize{
+  position:absolute;bottom:-8px;right:-8px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--primary);border:2px solid #fff;
+  cursor:nwse-resize;
+}
+.cluster-delete{
+  position:absolute;top:-12px;right:-8px;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--danger);color:#fff;border:none;
+  font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+
+/* Floating add button (student) */
+.fab{
+  position:fixed;
+  bottom:22px;right:22px;
+  width:64px;height:64px;
+  border-radius:50%;
+  background:var(--primary);
+  color:#fff;
+  font-size:30px;font-weight:800;
+  border:none;cursor:pointer;
+  box-shadow:0 8px 24px rgba(76,175,154,.45);
+  z-index:100;
+}
+.fab:active{transform:scale(.9)}
+
+/* Note compose modal */
+.compose-colors{display:flex;gap:12px;justify-content:center}
+.compose-color{
+  width:54px;height:54px;
+  border-radius:14px;
+  border:3px solid transparent;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;
+  position:relative;
+}
+.compose-color.selected{border-color:var(--text);transform:scale(1.1)}
+.compose-color.color-r{background:var(--note-r)}
+.compose-color.color-b{background:var(--note-b)}
+.compose-color.color-y{background:var(--note-y)}
+.compose-color.color-g{background:var(--note-g)}
+.compose-color .lbl{
+  position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap;
+}
+.compose-textarea{
+  width:100%;
+  min-height:120px;
+  padding:14px;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  font-family:inherit;
+  font-size:16px;
+  font-weight:500;
+  outline:none;
+  background:#FAFAFA;
+  resize:none;
+  line-height:1.6;
+}
+.compose-textarea:focus{border-color:var(--primary);background:#fff}
+
+/* ════ TEACHER APP ══════════════════════════════════════ */
+#teacher-app{display:none;flex-direction:column;min-height:100vh}
+.t-header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.t-logo{font-size:18px;font-weight:800;white-space:nowrap}.t-logo span{color:var(--primary)}
+.t-room{padding:4px 12px;background:#EEF7F4;border:1.5px solid var(--primary);border-radius:20px;font-size:12px;font-weight:700;color:var(--primary)}
+.t-q{flex:1;min-width:200px;background:#FFF9F0;border:1.5px solid #F5D98A;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;color:#7A5F00;cursor:pointer;display:flex;align-items:center;gap:6px}
+.copy-url{padding:7px 13px;border-radius:10px;border:1.5px solid var(--primary);background:#EEF7F4;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.sync-ind{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#CCC}
+.sync-dot.live{background:var(--primary);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.t-main{display:grid;grid-template-columns:1fr 340px;flex:1;overflow:hidden}
+@media(max-width:900px){.t-main{grid-template-columns:1fr;grid-template-rows:1fr auto}}
+
+.t-left{display:flex;flex-direction:column;overflow:hidden}
+.t-right{display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden;max-height:calc(100vh - 60px)}
+
+/* Toolbar in teacher mode */
+.t-toolbar{padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tool-btn{padding:7px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--text)}
+.tool-btn:active{transform:scale(.96)}
+.tool-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.tool-divider{width:1px;height:20px;background:var(--border);margin:0 4px}
+
+/* Right panel sections */
+.panel-sec{border-bottom:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.panel-sec-hd{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--bg)}
+.panel-sec-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.panel-sec-body{padding:10px 14px;overflow-y:auto;flex:1}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.stat-card .num{font-size:20px;font-weight:800}
+.stat-card .lbl{font-size:11px;color:var(--muted)}
+
+.color-distribution{display:flex;gap:4px;margin-top:8px;height:20px;border-radius:6px;overflow:hidden}
+.color-bar{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(0,0,0,.7);min-width:24px}
+
+.log-list{display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.log-item{padding:7px 10px;border-radius:8px;background:#FAFAFA;border:1px solid var(--border);font-size:12px;display:flex;align-items:center;gap:6px}
+.log-icon{font-size:14px;flex:none}
+.log-text{flex:1;color:var(--text)}
+.log-time{font-size:10px;color:var(--muted);flex:none}
+
+.bg-pattern-paper{background-color:#FAF8F3;background-image:
+  radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size:24px 24px}
+
+/* helper */
+.flex{display:flex}.flex-col{flex-direction:column}.gap-2{gap:8px}.gap-1{gap:4px}
+.ml-auto{margin-left:auto}.mt-2{margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ════ SETUP ════════════════════════════════════════ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">シンキング<span>ボード</span></div>
+
+    <div class="setup-section">
+      <div class="setup-label">📢 課題（問い・テーマ）</div>
+      <textarea class="mi" id="su-question" rows="2" placeholder="例：やさしさってどんなこと？"></textarea>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">🔑 ルームID</div>
+      <input class="mi" id="su-room" style="font-size:20px;font-weight:800;letter-spacing:3px;text-align:center">
+      <button class="btn btn-ghost" onclick="genRoomId()" style="width:100%;padding:8px;font-size:12px">🔀 別のIDに変える</button>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">👥 グループボードの数</div>
+      <div class="group-count" id="su-groups">
+        <button class="gc-btn active" data-n="0">なし</button>
+        <button class="gc-btn" data-n="2">2班</button>
+        <button class="gc-btn" data-n="3">3班</button>
+        <button class="gc-btn" data-n="4">4班</button>
+        <button class="gc-btn" data-n="5">5班</button>
+        <button class="gc-btn" data-n="6">6班</button>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">📝 児童の名前</div>
+      <div class="namemode" id="su-namemode">
+        <button class="nm-btn active" data-mode="number">
+          <span class="icon">🔢</span>出席番号
+        </button>
+        <button class="nm-btn" data-mode="anon">
+          <span class="icon">🤫</span>匿名
+        </button>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">🎨 付箋の色（各色の意味を入れられます）</div>
+      <div class="palette-edit" id="su-palette">
+        <div class="palette-row"><div class="color-dot" style="background:var(--note-r)"></div><input data-color="r" placeholder="例：こまる"></div>
+        <div class="palette-row"><div class="color-dot" style="background:var(--note-b)"></div><input data-color="b" placeholder="例：うれしい"></div>
+        <div class="palette-row"><div class="color-dot" style="background:var(--note-y)"></div><input data-color="y" placeholder="例：かんがえたい"></div>
+        <div class="palette-row"><div class="color-dot" style="background:var(--note-g)"></div><input data-color="g" placeholder="(任意)"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="startTeacher()" style="width:100%;font-size:16px;padding:14px">🚀 授業スタート</button>
+  </div>
+</div>
+
+<!-- ════ STUDENT ══════════════════════════════════════ -->
+<div id="student-app">
+  <div class="s-header">
+    <div class="s-logo">シンキング<span>ボード</span></div>
+    <div class="s-id-badge" id="s-id-badge">—</div>
+    <div class="s-question" id="s-question">…</div>
+  </div>
+
+  <!-- Step1: 名前入力 -->
+  <div id="s-name-gate">
+    <div class="numgate" id="s-numgate" style="display:none">
+      <label>📋 しゅっせきばんごうを<br>おしてね</label>
+      <div class="num-disp" id="num-disp">—</div>
+      <div class="numpad">
+        <button class="np" onclick="np('1')">1</button>
+        <button class="np" onclick="np('2')">2</button>
+        <button class="np" onclick="np('3')">3</button>
+        <button class="np" onclick="np('4')">4</button>
+        <button class="np" onclick="np('5')">5</button>
+        <button class="np" onclick="np('6')">6</button>
+        <button class="np" onclick="np('7')">7</button>
+        <button class="np" onclick="np('8')">8</button>
+        <button class="np" onclick="np('9')">9</button>
+        <button class="np del" onclick="np('del')">⌫</button>
+        <button class="np" onclick="np('0')">0</button>
+        <button class="np ok" onclick="np('ok')">OK</button>
+      </div>
+    </div>
+    <div id="s-anon-gate" style="display:none;text-align:center">
+      <div style="font-size:48px;margin-bottom:14px">🤫</div>
+      <div style="font-size:16px;font-weight:700;color:var(--muted);margin-bottom:24px">きょうは「なまえなし」で<br>すすめるよ</div>
+      <button class="btn btn-primary" onclick="confirmAnon()" style="font-size:16px;padding:14px 32px">はじめる</button>
+    </div>
+  </div>
+
+  <!-- Step2: Board view -->
+  <div id="s-board-view" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div class="board-tabs" id="s-board-tabs"></div>
+    <div class="board-area" id="s-board-area">
+      <div class="board-canvas" id="s-board-canvas"></div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab" style="display:none" onclick="openCompose()">+</button>
+</div>
+
+<!-- ════ TEACHER ══════════════════════════════════════ -->
+<div id="teacher-app">
+  <header class="t-header">
+    <div class="t-logo">シンキング<span>ボード</span></div>
+    <div class="t-room" id="t-room">ルーム: —</div>
+    <div class="t-q" onclick="openQModal()">
+      <span>📢</span><span id="t-q-text" style="flex:1">…</span><span style="font-size:11px;color:var(--muted)">✎</span>
+    </div>
+    <button class="copy-url" onclick="copyStudentUrl()">🔗 児童用URL</button>
+    <div class="sync-ind">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-lbl">待機中</span>
+    </div>
+    <button class="btn btn-danger" onclick="doReset()" style="padding:7px 12px;font-size:12px">リセット</button>
+  </header>
+
+  <div class="t-main">
+    <div class="t-left">
+      <div class="board-tabs" id="t-board-tabs"></div>
+      <div class="t-toolbar">
+        <button class="tool-btn" id="tool-add" onclick="setTool('add')">📝 付箋追加</button>
+        <button class="tool-btn" id="tool-cluster" onclick="setTool('cluster')">🎯 クラスタ作成</button>
+        <span class="tool-divider"></span>
+        <span style="font-size:11px;color:var(--muted)" id="tool-hint">付箋をドラッグして整理できます</span>
+      </div>
+      <div class="board-area" id="t-board-area">
+        <div class="board-canvas" id="t-board-canvas"></div>
+      </div>
+    </div>
+
+    <div class="t-right">
+      <!-- Stats -->
+      <div class="panel-sec">
+        <div class="panel-sec-hd"><span class="panel-sec-title">📊 統計</span></div>
+        <div class="panel-sec-body" style="flex:none">
+          <div class="stats-grid">
+            <div class="stat-card"><span class="num" id="st-notes">0</span><span class="lbl">付箋数</span></div>
+            <div class="stat-card"><span class="num" id="st-authors">0</span><span class="lbl">参加者</span></div>
+            <div class="stat-card"><span class="num" id="st-clusters">0</span><span class="lbl">クラスタ</span></div>
+            <div class="stat-card"><span class="num" id="st-board-notes">0</span><span class="lbl">このボード</span></div>
+          </div>
+          <div class="color-distribution" id="color-dist"></div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="panel-sec" style="flex:1;min-height:0">
+        <div class="panel-sec-hd">
+          <span class="panel-sec-title">📋 活動ログ</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto" id="log-count">0件</span>
+        </div>
+        <div class="panel-sec-body">
+          <div class="log-list" id="log-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODALS ══════════════════════════════════════════ -->
+
+<!-- Note Compose Modal -->
+<div class="modal-bg" id="compose-modal">
+  <div class="modal">
+    <h2>📝 ふせんを書く</h2>
+    <div class="setup-label">いろをえらぶ</div>
+    <div class="compose-colors" id="compose-colors">
+      <div class="compose-color color-r selected" data-color="r"><span class="lbl" data-lbl="r"></span></div>
+      <div class="compose-color color-b" data-color="b"><span class="lbl" data-lbl="b"></span></div>
+      <div class="compose-color color-y" data-color="y"><span class="lbl" data-lbl="y"></span></div>
+      <div class="compose-color color-g" data-color="g"><span class="lbl" data-lbl="g"></span></div>
+    </div>
+    <div class="setup-label" style="margin-top:20px">なにを書く？</div>
+    <textarea class="compose-textarea" id="compose-text" placeholder="ここに書いてね…" maxlength="100"></textarea>
+    <div style="font-size:11px;color:var(--muted);text-align:right" id="compose-counter">0 / 100</div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-ghost" onclick="closeCompose()" style="flex:1">やめる</button>
+      <button class="btn btn-primary" onclick="submitNote()" style="flex:2;font-size:16px;padding:13px">✅ おく</button>
+    </div>
+  </div>
+</div>
+
+<!-- Question Edit Modal -->
+<div class="modal-bg" id="q-modal">
+  <div class="modal">
+    <h2>📢 課題を編集</h2>
+    <textarea class="mi" id="modal-q" rows="3"></textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="saveQuestion()" style="flex:1">保存</button>
+      <button class="btn btn-ghost" onclick="closeQModal()" style="flex:1">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Label Modal -->
+<div class="modal-bg" id="cluster-modal">
+  <div class="modal">
+    <h2>🎯 クラスタのラベル</h2>
+    <input class="mi" id="modal-cluster-label" placeholder="例：思いやり">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="saveClusterLabel()" style="flex:1">保存</button>
+      <button class="btn btn-ghost" onclick="closeClusterModal()" style="flex:1">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════
+// ⚠️ 新しいスプレッドシートで「コード.gs」をデプロイしたあと、
+// 発行されたウェブアプリのURLを下の '' の中に貼ってください
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxj-ScG2W714BfzmVbShb3UO9WbA06oGTN1EJjnwN46byzhq9ttq2shneLngIYKTeAT/exec';
+
+const QS = new URLSearchParams(location.search);
+const MODE = QS.get('mode');
+const ROOM = QS.get('room');
+const GAS_URL = DEFAULT_GAS_URL;
+
+const POLL_INTERVAL = 3000;
+
+// ════════════════════════════════════════════════════════
+//  UTILITIES
+// ════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, dur){
+  dur = dur || 2500;
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){el.classList.remove('show')}, dur);
+}
+
+function randId(){
+  return Math.random().toString(36).slice(2,6).toUpperCase();
+}
+
+// POST: no-cors fire-and-forget
+function gasPost(body){
+  return fetch(GAS_URL, {
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify(body)
+  }).catch(function(e){ console.warn('post err', e); });
+}
+
+// GET via JSONP
+function gasGet(params){
+  return new Promise(function(resolve){
+    const cb = '_gcb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+    params.callback = cb;
+    const qs = new URLSearchParams(params).toString();
+    const sc = document.createElement('script');
+    const timer = setTimeout(function(){
+      delete window[cb]; sc.remove();
+      resolve({ok:false});
+    }, 10000);
+    window[cb] = function(data){
+      clearTimeout(timer);
+      delete window[cb]; sc.remove();
+      resolve(data);
+    };
+    sc.src = GAS_URL + '?' + qs;
+    sc.onerror = function(){ clearTimeout(timer); resolve({ok:false}); };
+    document.head.appendChild(sc);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  SETUP MODE
+// ════════════════════════════════════════════════════════
+if (!MODE || MODE === 'setup') {
+  document.getElementById('setup-screen').style.display = 'flex';
+
+  // GAS URL未設定なら警告
+  if (!GAS_URL) {
+    const card = document.querySelector('.setup-card');
+    const warn = document.createElement('div');
+    warn.style.cssText = 'background:#FFF0ED;border:1.5px solid var(--danger);border-radius:10px;padding:12px 14px;color:var(--danger);font-size:13px;font-weight:700;line-height:1.6';
+    warn.innerHTML = '⚠️ GAS URLが未設定です<br><span style="font-weight:400;color:var(--text)">index.html の <code style="background:#fff;padding:1px 5px;border-radius:3px;font-family:monospace">DEFAULT_GAS_URL</code> にWebアプリのURLを貼ってください</span>';
+    card.insertBefore(warn, card.children[1]);
+  }
+  genRoomId();
+
+  // group count selector
+  document.querySelectorAll('#su-groups .gc-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#su-groups .gc-btn').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');
+    });
+  });
+  // name mode selector
+  document.querySelectorAll('#su-namemode .nm-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#su-namemode .nm-btn').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');
+    });
+  });
+
+  window.genRoomId = function(){
+    document.getElementById('su-room').value = randId();
+  };
+
+  window.startTeacher = async function(){
+    const question = document.getElementById('su-question').value.trim();
+    const room     = document.getElementById('su-room').value.trim() || randId();
+    const groupN   = parseInt(document.querySelector('#su-groups .gc-btn.active').dataset.n);
+    const nameMode = document.querySelector('#su-namemode .nm-btn.active').dataset.mode;
+
+    if (!question) { toast('課題を入力してください'); return; }
+
+    // build palette
+    const palette = [];
+    document.querySelectorAll('#su-palette .palette-row').forEach(function(row){
+      const inp = row.querySelector('input');
+      const cid = inp.dataset.color;
+      const label = inp.value.trim();
+      palette.push({id:cid, label:label});
+    });
+
+    // build boards
+    const boards = [{id:'class', name:'クラス', type:'class'}];
+    for (let i=1; i<=groupN; i++) {
+      boards.push({id:'g'+i, name:i+'班', type:'group'});
+    }
+
+    // send to GAS
+    await gasPost({
+      action:'setupRoom', room:room,
+      question:question, palette:palette, boards:boards, nameMode:nameMode
+    });
+
+    // redirect
+    setTimeout(function(){
+      location.href = location.pathname + '?mode=teacher&room=' + room;
+    }, 800);
+    toast('セットアップ中…');
+  };
+}
+
+// ════════════════════════════════════════════════════════
+//  STUDENT MODE
+// ════════════════════════════════════════════════════════
+else if (MODE === 'student') {
+  document.title = 'シンキングボード（児童用）';
+  document.getElementById('student-app').style.display = 'flex';
+
+  let state = { meta:null, notes:[], clusters:[], logs:[] };
+  let myId = null;
+  let currentBoardId = 'class';
+  let composeColor = 'r';
+  let dragging = null;
+
+  // initial fetch
+  init();
+
+  async function init(){
+    if (!ROOM) { document.getElementById('s-question').textContent='URLがちがうみたい'; return; }
+    const d = await gasGet({room:ROOM});
+    if (!d.ok || !d.exists) {
+      document.getElementById('s-question').textContent = 'まだ用意ができていないみたい…';
+      return;
+    }
+    state.meta = d.meta;
+    state.notes = d.notes;
+    state.clusters = d.clusters;
+    document.getElementById('s-question').textContent = d.meta.question;
+
+    // show name gate
+    document.getElementById('s-name-gate').style.display = 'flex';
+    if (d.meta.nameMode === 'anon') {
+      document.getElementById('s-anon-gate').style.display = 'block';
+    } else {
+      document.getElementById('s-numgate').style.display = 'flex';
+    }
+
+    // populate compose color labels
+    state.meta.palette.forEach(function(p){
+      const el = document.querySelector('[data-lbl="' + p.id + '"]');
+      if (el) el.textContent = p.label || '';
+    });
+  }
+
+  // ── numpad ──
+  let numStr = '';
+  window.np = function(v){
+    if (v==='del') { numStr = numStr.slice(0,-1); }
+    else if (v==='ok') { confirmNumber(); return; }
+    else { if (numStr.length>=2) numStr = numStr.slice(-1); numStr += v; }
+    document.getElementById('num-disp').textContent = numStr || '—';
+  };
+  function confirmNumber(){
+    if (!numStr) { toast('ばんごうをおしてね'); return; }
+    myId = parseInt(numStr);
+    enterBoard();
+  }
+  window.confirmAnon = function(){
+    myId = 'A' + Math.floor(Math.random()*10000);
+    enterBoard();
+  };
+
+  function enterBoard(){
+    document.getElementById('s-name-gate').style.display = 'none';
+    document.getElementById('s-board-view').style.display = 'flex';
+    document.getElementById('fab').style.display = 'block';
+    document.getElementById('s-id-badge').textContent = state.meta.nameMode==='anon' ? '🤫' : myId+'ばん';
+
+    renderBoardTabs('s-board-tabs', function(bid){
+      currentBoardId = bid;
+      renderBoard();
+      // update active tab
+      document.querySelectorAll('#s-board-tabs .board-tab').forEach(function(t){
+        t.classList.toggle('active', t.dataset.bid === bid);
+      });
+    });
+    renderBoard();
+    startPolling();
+  }
+
+  function renderBoardTabs(containerId, onSelect){
+    const c = document.getElementById(containerId);
+    c.innerHTML = '';
+    state.meta.boards.forEach(function(b){
+      const tab = document.createElement('button');
+      tab.className = 'board-tab' + (b.type==='class'?' class-tab':'') + (b.id===currentBoardId?' active':'');
+      tab.dataset.bid = b.id;
+      tab.textContent = (b.type==='class'?'🌐 ':'👥 ') + b.name;
+      tab.addEventListener('click', function(){ onSelect(b.id); });
+      c.appendChild(tab);
+    });
+  }
+
+  function renderBoard(){
+    const canvas = document.getElementById('s-board-canvas');
+    canvas.innerHTML = '';
+    // clusters first (background)
+    state.clusters.filter(function(c){ return c.boardId === currentBoardId; }).forEach(function(c){
+      canvas.appendChild(buildClusterEl(c, false));
+    });
+    // notes
+    state.notes.filter(function(n){ return n.boardId === currentBoardId && !n.hidden; }).forEach(function(n){
+      canvas.appendChild(buildNoteEl(n, false));
+    });
+  }
+
+  function buildNoteEl(n, isTeacher){
+    const el = document.createElement('div');
+    el.className = 'note color-' + n.colorId;
+    el.style.left = n.x + 'px';
+    el.style.top  = n.y + 'px';
+    el.dataset.id = n.id;
+
+    const isMine = String(n.authorId) === String(myId);
+    const canDrag = isTeacher || isMine;
+    const canDelete = isTeacher || isMine;
+    if (canDrag) el.classList.add('can-drag');
+    if (canDelete) el.classList.add('can-delete');
+    if (n.pinned) {
+      el.classList.remove('can-drag');
+    }
+
+    const textNode = document.createElement('div');
+    textNode.textContent = n.text;
+    el.appendChild(textNode);
+
+    const authorLbl = document.createElement('div');
+    authorLbl.className = 'note-author';
+    authorLbl.textContent = state.meta && state.meta.nameMode==='anon' ? '' : n.authorId+'番';
+    el.appendChild(authorLbl);
+
+    if (n.pinned) {
+      const pin = document.createElement('div');
+      pin.className = 'note-pin';
+      pin.textContent = '📌';
+      el.appendChild(pin);
+    }
+
+    if (canDelete) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'note-delete';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (confirm('この付箋を消しますか？')) deleteNote(n.id);
+      });
+      el.appendChild(delBtn);
+    }
+
+    if (canDrag && !n.pinned) {
+      makeDraggable(el, n, isTeacher);
+    }
+    return el;
+  }
+
+  function buildClusterEl(c, editable){
+    const el = document.createElement('div');
+    el.className = 'cluster' + (editable?' editable':'');
+    el.style.left = c.x + 'px';
+    el.style.top  = c.y + 'px';
+    el.style.width  = c.w + 'px';
+    el.style.height = c.h + 'px';
+    el.dataset.id = c.id;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'cluster-label';
+    lbl.textContent = c.label || '（無題）';
+    el.appendChild(lbl);
+
+    if (editable) {
+      lbl.addEventListener('click', function(e){ e.stopPropagation(); openClusterModal(c.id); });
+
+      const handles = document.createElement('div');
+      handles.className = 'cluster-handles';
+      el.appendChild(handles);
+      makeClusterDraggable(el, handles, c);
+
+      const resize = document.createElement('div');
+      resize.className = 'handle-resize';
+      el.appendChild(resize);
+      makeClusterResizable(el, resize, c);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'cluster-delete';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (confirm('このクラスタを消しますか？')) deleteCluster(c.id);
+      });
+      el.appendChild(delBtn);
+    }
+    return el;
+  }
+
+  // ── Drag logic ──
+  function makeDraggable(el, note, isTeacher){
+    let sx, sy, ox, oy, moved=false;
+
+    function onStart(e){
+      if (e.target.classList.contains('note-delete')) return;
+      const p = getPoint(e);
+      sx = p.x; sy = p.y;
+      ox = note.x; oy = note.y;
+      moved = false;
+      el.classList.add('dragging');
+      e.preventDefault();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+    }
+    function onMove(e){
+      const p = getPoint(e);
+      const dx = p.x - sx, dy = p.y - sy;
+      if (Math.abs(dx)>3 || Math.abs(dy)>3) moved = true;
+      note.x = Math.max(0, ox + dx);
+      note.y = Math.max(0, oy + dy);
+      el.style.left = note.x + 'px';
+      el.style.top  = note.y + 'px';
+      e.preventDefault();
+    }
+    function onEnd(e){
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      if (moved) {
+        note.updatedAt = new Date().toISOString();
+        // detect cluster
+        note.clusterId = detectCluster(note);
+        gasPost({action:'updateNote', room:ROOM, note:note, actorId:myId,
+                 logType:'move'});
+      }
+    }
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('touchstart', onStart, {passive:false});
+  }
+
+  function getPoint(e){
+    if (e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    return {x:e.clientX, y:e.clientY};
+  }
+
+  function detectCluster(note){
+    const found = state.clusters.find(function(c){
+      return c.boardId === note.boardId &&
+        note.x >= c.x && note.x <= c.x + c.w &&
+        note.y >= c.y && note.y <= c.y + c.h;
+    });
+    return found ? found.id : null;
+  }
+
+  function makeClusterDraggable(el, handle, cluster){ /* teacher only */ }
+  function makeClusterResizable(el, handle, cluster){ /* teacher only */ }
+
+  // ── Compose ──
+  window.openCompose = function(){
+    document.getElementById('compose-text').value = '';
+    document.getElementById('compose-counter').textContent = '0 / 100';
+    document.getElementById('compose-modal').classList.add('open');
+    document.getElementById('compose-text').focus();
+  };
+  window.closeCompose = function(){
+    document.getElementById('compose-modal').classList.remove('open');
+  };
+  document.querySelectorAll('#compose-colors .compose-color').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('#compose-colors .compose-color').forEach(function(x){x.classList.remove('selected')});
+      el.classList.add('selected');
+      composeColor = el.dataset.color;
+    });
+  });
+  document.getElementById('compose-text').addEventListener('input', function(e){
+    document.getElementById('compose-counter').textContent = e.target.value.length + ' / 100';
+  });
+
+  window.submitNote = async function(){
+    const text = document.getElementById('compose-text').value.trim();
+    if (!text) { toast('なにか書いてね'); return; }
+    const board = document.getElementById('s-board-canvas');
+    const area = document.getElementById('s-board-area');
+    const cx = area.scrollLeft + area.offsetWidth/2 - 70 + (Math.random()*40-20);
+    const cy = area.scrollTop  + area.offsetHeight/2 - 50 + (Math.random()*40-20);
+    const now = new Date().toISOString();
+    const note = {
+      id: Date.now() + '_' + Math.floor(Math.random()*1000),
+      authorId: myId,
+      boardId: currentBoardId,
+      colorId: composeColor,
+      text: text,
+      x: Math.max(20, cx),
+      y: Math.max(20, cy),
+      clusterId: null,
+      pinned: false,
+      hidden: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.notes.push(note);
+    renderBoard();
+    closeCompose();
+    await gasPost({action:'addNote', room:ROOM, note:note});
+    toast('ふせんをおいたよ！');
+  };
+
+  async function deleteNote(id){
+    state.notes = state.notes.filter(function(n){ return n.id !== id; });
+    renderBoard();
+    await gasPost({action:'deleteNote', room:ROOM, noteId:id, actorId:myId});
+  }
+
+  async function deleteCluster(){}
+
+  // ── Polling ──
+  let lastUpdateMap = {};
+  function startPolling(){
+    setInterval(pollOnce, POLL_INTERVAL);
+  }
+  async function pollOnce(){
+    const d = await gasGet({room:ROOM});
+    if (!d.ok || !d.exists) return;
+    state.meta = d.meta;
+    document.getElementById('s-question').textContent = d.meta.question;
+
+    // merge notes (don't override notes I'm currently dragging — simple: just replace)
+    state.notes = d.notes;
+    state.clusters = d.clusters;
+    renderBoard();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  TEACHER MODE
+// ════════════════════════════════════════════════════════
+else if (MODE === 'teacher') {
+  document.title = 'シンキングボード（教師用）';
+  document.getElementById('teacher-app').style.display = 'flex';
+
+  let state = { meta:null, notes:[], clusters:[], logs:[] };
+  let currentBoardId = 'class';
+  let currentTool = null; // 'add' | 'cluster' | null
+  let editingClusterId = null;
+
+  document.getElementById('t-room').textContent = 'ルーム: ' + ROOM;
+  init();
+
+  async function init(){
+    const d = await gasGet({room:ROOM});
+    if (!d.ok || !d.exists) {
+      alert('ルームが見つかりません。セットアップからやり直してください。');
+      location.href = location.pathname;
+      return;
+    }
+    applyData(d);
+    renderAll();
+    startPolling();
+  }
+
+  function applyData(d){
+    state.meta = d.meta;
+    state.notes = d.notes;
+    state.clusters = d.clusters;
+    state.logs = d.logs;
+    document.getElementById('t-q-text').textContent = d.meta.question;
+  }
+
+  function renderAll(){
+    renderBoardTabs();
+    renderBoard();
+    renderStats();
+    renderLogs();
+  }
+
+  function renderBoardTabs(){
+    const c = document.getElementById('t-board-tabs');
+    c.innerHTML = '';
+    state.meta.boards.forEach(function(b){
+      const tab = document.createElement('button');
+      tab.className = 'board-tab' + (b.type==='class'?' class-tab':'') + (b.id===currentBoardId?' active':'');
+      tab.dataset.bid = b.id;
+      const noteCount = state.notes.filter(function(n){return n.boardId===b.id && !n.hidden}).length;
+      tab.innerHTML = (b.type==='class'?'🌐 ':'👥 ') + b.name + ' <span style="opacity:.6;font-size:11px">('+noteCount+')</span>';
+      tab.addEventListener('click', function(){
+        currentBoardId = b.id;
+        renderBoardTabs();
+        renderBoard();
+        renderStats();
+      });
+      c.appendChild(tab);
+    });
+  }
+
+  function renderBoard(){
+    const canvas = document.getElementById('t-board-canvas');
+    canvas.innerHTML = '';
+    state.clusters.filter(function(c){ return c.boardId===currentBoardId; }).forEach(function(c){
+      canvas.appendChild(buildClusterEl(c, true));
+    });
+    state.notes.filter(function(n){ return n.boardId===currentBoardId && !n.hidden; }).forEach(function(n){
+      canvas.appendChild(buildNoteEl(n));
+    });
+    // teacher can click empty area in tool mode
+    canvas.onclick = function(e){
+      if (e.target !== canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (currentTool === 'add') teacherAddNote(x, y);
+      else if (currentTool === 'cluster') teacherAddCluster(x, y);
+    };
+  }
+
+  function buildNoteEl(n){
+    const el = document.createElement('div');
+    el.className = 'note color-' + n.colorId + ' can-drag can-delete';
+    el.style.left = n.x + 'px';
+    el.style.top  = n.y + 'px';
+    el.dataset.id = n.id;
+
+    const textNode = document.createElement('div');
+    textNode.textContent = n.text;
+    el.appendChild(textNode);
+
+    const authorLbl = document.createElement('div');
+    authorLbl.className = 'note-author';
+    authorLbl.textContent = state.meta.nameMode==='anon' ? '' : n.authorId+'番';
+    el.appendChild(authorLbl);
+
+    if (n.pinned) {
+      const pin = document.createElement('div');
+      pin.className = 'note-pin';
+      pin.textContent = '📌';
+      el.appendChild(pin);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'note-delete';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (confirm('この付箋を消しますか？')) deleteNote(n.id);
+    });
+    el.appendChild(delBtn);
+
+    makeNoteDraggable(el, n);
+    return el;
+  }
+
+  function buildClusterEl(c, editable){
+    const el = document.createElement('div');
+    el.className = 'cluster editable';
+    el.style.left = c.x + 'px';
+    el.style.top  = c.y + 'px';
+    el.style.width  = c.w + 'px';
+    el.style.height = c.h + 'px';
+    el.dataset.id = c.id;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'cluster-label';
+    lbl.textContent = c.label || '（クリックして名前をつける）';
+    lbl.addEventListener('click', function(e){ e.stopPropagation(); openClusterModal(c.id); });
+    el.appendChild(lbl);
+
+    const handles = document.createElement('div');
+    handles.className = 'cluster-handles';
+    el.appendChild(handles);
+    makeClusterDraggable(el, handles, c);
+
+    const resize = document.createElement('div');
+    resize.className = 'handle-resize';
+    el.appendChild(resize);
+    makeClusterResizable(el, resize, c);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'cluster-delete';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (confirm('このクラスタを消しますか？')) deleteCluster(c.id);
+    });
+    el.appendChild(delBtn);
+
+    return el;
+  }
+
+  function makeNoteDraggable(el, note){
+    let sx, sy, ox, oy, moved=false;
+
+    function onStart(e){
+      if (e.target.classList.contains('note-delete')) return;
+      const p = getPoint(e);
+      sx = p.x; sy = p.y;
+      ox = note.x; oy = note.y;
+      moved = false;
+      el.classList.add('dragging');
+      e.preventDefault();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+    }
+    function onMove(e){
+      const p = getPoint(e);
+      const dx = p.x - sx, dy = p.y - sy;
+      if (Math.abs(dx)>3 || Math.abs(dy)>3) moved = true;
+      note.x = Math.max(0, ox + dx);
+      note.y = Math.max(0, oy + dy);
+      el.style.left = note.x + 'px';
+      el.style.top  = note.y + 'px';
+      e.preventDefault();
+    }
+    function onEnd(){
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      if (moved) {
+        note.updatedAt = new Date().toISOString();
+        note.clusterId = detectCluster(note);
+        gasPost({action:'updateNote', room:ROOM, note:note, actorId:'teacher',
+                 logType:'teacherMove'});
+      }
+    }
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('touchstart', onStart, {passive:false});
+  }
+
+  function makeClusterDraggable(el, handle, cluster){
+    let sx, sy, ox, oy;
+    function onStart(e){
+      const p = getPoint(e);
+      sx = p.x; sy = p.y;
+      ox = cluster.x; oy = cluster.y;
+      e.preventDefault();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+    }
+    function onMove(e){
+      const p = getPoint(e);
+      cluster.x = Math.max(0, ox + p.x - sx);
+      cluster.y = Math.max(0, oy + p.y - sy);
+      el.style.left = cluster.x + 'px';
+      el.style.top  = cluster.y + 'px';
+      e.preventDefault();
+    }
+    function onEnd(){
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      gasPost({action:'upsertCluster', room:ROOM, cluster:cluster, actorId:'teacher'});
+    }
+    handle.addEventListener('mousedown', onStart);
+    handle.addEventListener('touchstart', onStart, {passive:false});
+  }
+
+  function makeClusterResizable(el, handle, cluster){
+    let sx, sy, ow, oh;
+    function onStart(e){
+      const p = getPoint(e);
+      sx = p.x; sy = p.y;
+      ow = cluster.w; oh = cluster.h;
+      e.preventDefault(); e.stopPropagation();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+    }
+    function onMove(e){
+      const p = getPoint(e);
+      cluster.w = Math.max(120, ow + p.x - sx);
+      cluster.h = Math.max(100, oh + p.y - sy);
+      el.style.width  = cluster.w + 'px';
+      el.style.height = cluster.h + 'px';
+      e.preventDefault();
+    }
+    function onEnd(){
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      gasPost({action:'upsertCluster', room:ROOM, cluster:cluster, actorId:'teacher'});
+    }
+    handle.addEventListener('mousedown', onStart);
+    handle.addEventListener('touchstart', onStart, {passive:false});
+  }
+
+  function getPoint(e){
+    if (e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    return {x:e.clientX, y:e.clientY};
+  }
+
+  function detectCluster(note){
+    const found = state.clusters.find(function(c){
+      return c.boardId === note.boardId &&
+        note.x >= c.x && note.x <= c.x + c.w &&
+        note.y >= c.y && note.y <= c.y + c.h;
+    });
+    return found ? found.id : null;
+  }
+
+  // ── Tools ──
+  window.setTool = function(t){
+    if (currentTool === t) currentTool = null;
+    else currentTool = t;
+    document.getElementById('tool-add').classList.toggle('active', currentTool==='add');
+    document.getElementById('tool-cluster').classList.toggle('active', currentTool==='cluster');
+    document.getElementById('tool-hint').textContent =
+      currentTool==='add' ? 'ボードをタップして付箋を追加' :
+      currentTool==='cluster' ? 'ボードをタップしてクラスタを作成' :
+      '付箋をドラッグして整理できます';
+    document.getElementById('t-board-canvas').style.cursor = currentTool ? 'crosshair' : 'default';
+  };
+
+  async function teacherAddNote(x, y){
+    const text = prompt('付箋の内容を入力してください');
+    if (!text) return;
+    const now = new Date().toISOString();
+    const note = {
+      id: Date.now() + '_t',
+      authorId: 'teacher',
+      boardId: currentBoardId,
+      colorId: 'g',
+      text: text,
+      x: x, y: y,
+      clusterId: null, pinned: false, hidden: false,
+      createdAt: now, updatedAt: now,
+    };
+    state.notes.push(note);
+    renderBoard();
+    await gasPost({action:'addNote', room:ROOM, note:note});
+    setTool(null);
+    toast('付箋を追加しました');
+  }
+
+  async function teacherAddCluster(x, y){
+    const cluster = {
+      id: 'c_' + Date.now(),
+      boardId: currentBoardId,
+      label: '',
+      x: x, y: y, w: 280, h: 220,
+      color: '#FFFFFF',
+      updatedAt: new Date().toISOString()
+    };
+    state.clusters.push(cluster);
+    renderBoard();
+    await gasPost({action:'upsertCluster', room:ROOM, cluster:cluster, actorId:'teacher'});
+    setTool(null);
+    toast('クラスタを作成しました');
+  }
+
+  async function deleteNote(id){
+    state.notes = state.notes.filter(function(n){ return n.id !== id; });
+    renderBoard();
+    renderStats();
+    await gasPost({action:'deleteNote', room:ROOM, noteId:id, actorId:'teacher'});
+  }
+
+  async function deleteCluster(id){
+    state.clusters = state.clusters.filter(function(c){ return c.id !== id; });
+    renderBoard();
+    await gasPost({action:'deleteCluster', room:ROOM, clusterId:id, actorId:'teacher'});
+  }
+
+  // ── Cluster label modal ──
+  window.openClusterModal = function(id){
+    editingClusterId = id;
+    const c = state.clusters.find(function(x){return x.id===id});
+    document.getElementById('modal-cluster-label').value = c ? c.label : '';
+    document.getElementById('cluster-modal').classList.add('open');
+  };
+  window.closeClusterModal = function(){
+    document.getElementById('cluster-modal').classList.remove('open');
+  };
+  window.saveClusterLabel = async function(){
+    const c = state.clusters.find(function(x){return x.id===editingClusterId});
+    if (!c) return;
+    c.label = document.getElementById('modal-cluster-label').value.trim();
+    c.updatedAt = new Date().toISOString();
+    renderBoard();
+    closeClusterModal();
+    await gasPost({action:'upsertCluster', room:ROOM, cluster:c, actorId:'teacher'});
+  };
+
+  // ── Question modal ──
+  window.openQModal = function(){
+    document.getElementById('modal-q').value = state.meta.question;
+    document.getElementById('q-modal').classList.add('open');
+  };
+  window.closeQModal = function(){
+    document.getElementById('q-modal').classList.remove('open');
+  };
+  window.saveQuestion = async function(){
+    const q = document.getElementById('modal-q').value.trim();
+    if (!q) return;
+    state.meta.question = q;
+    document.getElementById('t-q-text').textContent = q;
+    closeQModal();
+    await gasPost({action:'updateQuestion', room:ROOM, question:q});
+    toast('課題を更新しました');
+  };
+
+  // ── Copy student URL ──
+  window.copyStudentUrl = function(){
+    const url = location.origin + location.pathname + '?mode=student&room=' + ROOM;
+    navigator.clipboard.writeText(url).then(function(){ toast('児童用URLをコピーしました'); });
+  };
+
+  // ── Reset ──
+  window.doReset = async function(){
+    if (!confirm('全データをリセットしますか？\n（付箋・クラスタ・ログがすべて削除されます）')) return;
+    await gasPost({action:'reset', room:ROOM});
+    state.notes = []; state.clusters = []; state.logs = [];
+    renderAll();
+    toast('リセットしました');
+  };
+
+  // ── Stats ──
+  function renderStats(){
+    const totalNotes = state.notes.filter(function(n){return !n.hidden}).length;
+    const boardNotes = state.notes.filter(function(n){return !n.hidden && n.boardId===currentBoardId}).length;
+    const authors = new Set(state.notes.filter(function(n){return !n.hidden && n.authorId!=='teacher'}).map(function(n){return n.authorId}));
+    document.getElementById('st-notes').textContent = totalNotes;
+    document.getElementById('st-board-notes').textContent = boardNotes;
+    document.getElementById('st-authors').textContent = authors.size;
+    document.getElementById('st-clusters').textContent = state.clusters.length;
+
+    // color distribution
+    const counts = {r:0,b:0,y:0,g:0};
+    state.notes.forEach(function(n){ if (!n.hidden && counts[n.colorId]!==undefined) counts[n.colorId]++; });
+    const total = counts.r + counts.b + counts.y + counts.g;
+    const dist = document.getElementById('color-dist');
+    if (total === 0) { dist.innerHTML = ''; return; }
+    dist.innerHTML = '';
+    ['r','b','y','g'].forEach(function(c){
+      if (counts[c] === 0) return;
+      const bar = document.createElement('div');
+      bar.className = 'color-bar';
+      bar.style.background = 'var(--note-' + c + ')';
+      bar.style.flex = counts[c];
+      bar.textContent = counts[c];
+      dist.appendChild(bar);
+    });
+  }
+
+  // ── Logs ──
+  function renderLogs(){
+    const list = document.getElementById('log-list');
+    document.getElementById('log-count').textContent = state.logs.length + '件';
+    const recent = state.logs.slice().reverse().slice(0, 50);
+    list.innerHTML = '';
+    recent.forEach(function(l){
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      const icon = ({add:'📝',move:'🔄',delete:'🗑',cluster:'🎯',clusterDelete:'❌',teacherMove:'👨‍🏫'})[l.type] || '·';
+      const time = new Date(l.ts).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+      const author = l.authorId === 'teacher' ? '先生' :
+                     state.meta.nameMode==='anon' ? '誰か' : l.authorId+'番';
+      let msg = '';
+      if (l.type==='add') msg = author + 'が付箋を追加';
+      else if (l.type==='move') msg = author + 'が付箋を移動';
+      else if (l.type==='delete') msg = author + 'が付箋を削除';
+      else if (l.type==='cluster') msg = '先生がクラスタ「' + (l.text||'無題') + '」を編集';
+      else if (l.type==='clusterDelete') msg = '先生がクラスタを削除';
+      else if (l.type==='teacherMove') msg = '先生が付箋を移動';
+      else msg = l.type;
+      item.innerHTML = '<span class="log-icon">' + icon + '</span><span class="log-text">' + msg + '</span><span class="log-time">' + time + '</span>';
+      list.appendChild(item);
+    });
+  }
+
+  // ── Polling ──
+  function startPolling(){
+    setInterval(pollOnce, POLL_INTERVAL);
+  }
+  let pollBusy = false;
+  async function pollOnce(){
+    if (pollBusy) return;
+    pollBusy = true;
+    try {
+      const d = await gasGet({room:ROOM});
+      if (!d.ok || !d.exists) return;
+      applyData(d);
+      renderAll();
+      const dot = document.getElementById('sync-dot');
+      dot.classList.add('live');
+      document.getElementById('sync-lbl').textContent = '同期中';
+      setTimeout(function(){dot.classList.remove('live');}, 1000);
+    } finally {
+      pollBusy = false;
+    }
+  }
+}
+</script>
+</body>
+</html>
