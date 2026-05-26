@@ -758,7 +758,9 @@ else if (MODE === 'student') {
     el.dataset.id = n.id;
 
     const isMine = String(n.authorId) === String(myId);
-    const canDrag = isTeacher || isMine;
+    const isClassBoard = currentBoardId === 'class';
+    // クラスボードは教師のみ移動可・グループボードは自分の付箋のみ移動可
+    const canDrag = isTeacher ? true : (!isClassBoard && isMine);
     const canDelete = isTeacher || isMine;
     if (canDrag) el.classList.add('can-drag');
     if (canDelete) el.classList.add('can-delete');
