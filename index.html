@@ -296,30 +296,36 @@ textarea.mi{resize:none;line-height:1.6}
     </div>
 
     <div class="setup-section">
-      <div class="setup-label">🔑 ルームID</div>
-      <input class="mi" id="su-room" style="font-size:20px;font-weight:800;letter-spacing:3px;text-align:center">
-      <button class="btn btn-ghost" onclick="genRoomId()" style="width:100%;padding:8px;font-size:12px">🔀 別のIDに変える</button>
+      <div class="setup-label">🔑 ルームID（自動生成）</div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 14px;border:1.5px solid var(--border)">
+        <span style="font-size:22px;font-weight:800;letter-spacing:4px;color:var(--primary);flex:1;text-align:center" id="su-room-display">——</span>
+        <button type="button" class="btn btn-ghost" onclick="genRoomId()" style="padding:7px 12px;font-size:12px;white-space:nowrap">🔀 変える</button>
+      </div>
+      <input type="hidden" id="su-room">
     </div>
 
     <div class="setup-section">
       <div class="setup-label">👥 グループボードの数</div>
       <div class="group-count" id="su-groups">
-        <button class="gc-btn active" data-n="0">なし</button>
-        <button class="gc-btn" data-n="2">2班</button>
-        <button class="gc-btn" data-n="3">3班</button>
-        <button class="gc-btn" data-n="4">4班</button>
-        <button class="gc-btn" data-n="5">5班</button>
-        <button class="gc-btn" data-n="6">6班</button>
+        <button type="button" class="gc-btn active" data-n="0">なし</button>
+        <button type="button" class="gc-btn" data-n="2">2班</button>
+        <button type="button" class="gc-btn" data-n="3">3班</button>
+        <button type="button" class="gc-btn" data-n="4">4班</button>
+        <button type="button" class="gc-btn" data-n="5">5班</button>
+        <button type="button" class="gc-btn" data-n="6">6班</button>
+        <button type="button" class="gc-btn" data-n="7">7班</button>
+        <button type="button" class="gc-btn" data-n="8">8班</button>
+        <button type="button" class="gc-btn" data-n="9">9班</button>
       </div>
     </div>
 
     <div class="setup-section">
       <div class="setup-label">📝 児童の名前</div>
       <div class="namemode" id="su-namemode">
-        <button class="nm-btn active" data-mode="number">
+        <button type="button" class="nm-btn active" data-mode="number">
           <span class="icon">🔢</span>出席番号
         </button>
-        <button class="nm-btn" data-mode="anon">
+        <button type="button" class="nm-btn" data-mode="anon">
           <span class="icon">🤫</span>匿名
         </button>
       </div>
@@ -335,7 +341,7 @@ textarea.mi{resize:none;line-height:1.6}
       </div>
     </div>
 
-    <button class="btn btn-primary" onclick="startTeacher()" style="width:100%;font-size:16px;padding:14px">🚀 授業スタート</button>
+    <button type="button" class="btn btn-primary" onclick="startTeacher()" style="width:100%;font-size:16px;padding:14px">🚀 授業スタート</button>
   </div>
 </div>
 
@@ -353,24 +359,24 @@ textarea.mi{resize:none;line-height:1.6}
       <label>📋 しゅっせきばんごうを<br>おしてね</label>
       <div class="num-disp" id="num-disp">—</div>
       <div class="numpad">
-        <button class="np" onclick="np('1')">1</button>
-        <button class="np" onclick="np('2')">2</button>
-        <button class="np" onclick="np('3')">3</button>
-        <button class="np" onclick="np('4')">4</button>
-        <button class="np" onclick="np('5')">5</button>
-        <button class="np" onclick="np('6')">6</button>
-        <button class="np" onclick="np('7')">7</button>
-        <button class="np" onclick="np('8')">8</button>
-        <button class="np" onclick="np('9')">9</button>
-        <button class="np del" onclick="np('del')">⌫</button>
-        <button class="np" onclick="np('0')">0</button>
-        <button class="np ok" onclick="np('ok')">OK</button>
+        <button type="button" class="np" onclick="np('1')">1</button>
+        <button type="button" class="np" onclick="np('2')">2</button>
+        <button type="button" class="np" onclick="np('3')">3</button>
+        <button type="button" class="np" onclick="np('4')">4</button>
+        <button type="button" class="np" onclick="np('5')">5</button>
+        <button type="button" class="np" onclick="np('6')">6</button>
+        <button type="button" class="np" onclick="np('7')">7</button>
+        <button type="button" class="np" onclick="np('8')">8</button>
+        <button type="button" class="np" onclick="np('9')">9</button>
+        <button type="button" class="np del" onclick="np('del')">⌫</button>
+        <button type="button" class="np" onclick="np('0')">0</button>
+        <button type="button" class="np ok" onclick="np('ok')">OK</button>
       </div>
     </div>
     <div id="s-anon-gate" style="display:none;text-align:center">
       <div style="font-size:48px;margin-bottom:14px">🤫</div>
       <div style="font-size:16px;font-weight:700;color:var(--muted);margin-bottom:24px">きょうは「なまえなし」で<br>すすめるよ</div>
-      <button class="btn btn-primary" onclick="confirmAnon()" style="font-size:16px;padding:14px 32px">はじめる</button>
+      <button type="button" class="btn btn-primary" onclick="confirmAnon()" style="font-size:16px;padding:14px 32px">はじめる</button>
     </div>
   </div>
 
@@ -382,7 +388,7 @@ textarea.mi{resize:none;line-height:1.6}
     </div>
   </div>
 
-  <button class="fab" id="fab" style="display:none" onclick="openCompose()">+</button>
+  <button type="button" class="fab" id="fab" style="display:none" onclick="openCompose()">+</button>
 </div>
 
 <!-- ════ TEACHER ══════════════════════════════════════ -->
@@ -393,20 +399,20 @@ textarea.mi{resize:none;line-height:1.6}
     <div class="t-q" onclick="openQModal()">
       <span>📢</span><span id="t-q-text" style="flex:1">…</span><span style="font-size:11px;color:var(--muted)">✎</span>
     </div>
-    <button class="copy-url" onclick="copyStudentUrl()">🔗 児童用URL</button>
+    <button type="button" class="copy-url" onclick="copyStudentUrl()">🔗 児童用URL</button>
     <div class="sync-ind">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-lbl">待機中</span>
     </div>
-    <button class="btn btn-danger" onclick="doReset()" style="padding:7px 12px;font-size:12px">リセット</button>
+    <button type="button" class="btn btn-danger" onclick="doReset()" style="padding:7px 12px;font-size:12px">リセット</button>
   </header>
 
   <div class="t-main">
     <div class="t-left">
       <div class="board-tabs" id="t-board-tabs"></div>
       <div class="t-toolbar">
-        <button class="tool-btn" id="tool-add" onclick="setTool('add')">📝 付箋追加</button>
-        <button class="tool-btn" id="tool-cluster" onclick="setTool('cluster')">🎯 クラスタ作成</button>
+        <button type="button" class="tool-btn" id="tool-add" onclick="setTool('add')">📝 付箋追加</button>
+        <button type="button" class="tool-btn" id="tool-cluster" onclick="setTool('cluster')">🎯 クラスタ作成</button>
         <span class="tool-divider"></span>
         <span style="font-size:11px;color:var(--muted)" id="tool-hint">付箋をドラッグして整理できます</span>
       </div>
@@ -461,8 +467,8 @@ textarea.mi{resize:none;line-height:1.6}
     <textarea class="compose-textarea" id="compose-text" placeholder="ここに書いてね…" maxlength="100"></textarea>
     <div style="font-size:11px;color:var(--muted);text-align:right" id="compose-counter">0 / 100</div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-ghost" onclick="closeCompose()" style="flex:1">やめる</button>
-      <button class="btn btn-primary" onclick="submitNote()" style="flex:2;font-size:16px;padding:13px">✅ おく</button>
+      <button type="button" class="btn btn-ghost" onclick="closeCompose()" style="flex:1">やめる</button>
+      <button type="button" class="btn btn-primary" onclick="submitNote()" style="flex:2;font-size:16px;padding:13px">✅ おく</button>
     </div>
   </div>
 </div>
@@ -473,8 +479,8 @@ textarea.mi{resize:none;line-height:1.6}
     <h2>📢 課題を編集</h2>
     <textarea class="mi" id="modal-q" rows="3"></textarea>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" onclick="saveQuestion()" style="flex:1">保存</button>
-      <button class="btn btn-ghost" onclick="closeQModal()" style="flex:1">キャンセル</button>
+      <button type="button" class="btn btn-primary" onclick="saveQuestion()" style="flex:1">保存</button>
+      <button type="button" class="btn btn-ghost" onclick="closeQModal()" style="flex:1">キャンセル</button>
     </div>
   </div>
 </div>
@@ -485,8 +491,8 @@ textarea.mi{resize:none;line-height:1.6}
     <h2>🎯 クラスタのラベル</h2>
     <input class="mi" id="modal-cluster-label" placeholder="例：思いやり">
     <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" onclick="saveClusterLabel()" style="flex:1">保存</button>
-      <button class="btn btn-ghost" onclick="closeClusterModal()" style="flex:1">キャンセル</button>
+      <button type="button" class="btn btn-primary" onclick="saveClusterLabel()" style="flex:1">保存</button>
+      <button type="button" class="btn btn-ghost" onclick="closeClusterModal()" style="flex:1">キャンセル</button>
     </div>
   </div>
 </div>
@@ -563,34 +569,44 @@ function gasGet(params){
 if (!MODE || MODE === 'setup') {
   document.getElementById('setup-screen').style.display = 'flex';
 
-  // GAS URL未設定なら警告
-  if (!GAS_URL) {
-    const card = document.querySelector('.setup-card');
-    const warn = document.createElement('div');
-    warn.style.cssText = 'background:#FFF0ED;border:1.5px solid var(--danger);border-radius:10px;padding:12px 14px;color:var(--danger);font-size:13px;font-weight:700;line-height:1.6';
-    warn.innerHTML = '⚠️ GAS URLが未設定です<br><span style="font-weight:400;color:var(--text)">index.html の <code style="background:#fff;padding:1px 5px;border-radius:3px;font-family:monospace">DEFAULT_GAS_URL</code> にWebアプリのURLを貼ってください</span>';
-    card.insertBefore(warn, card.children[1]);
-  }
-  genRoomId();
-
-  // group count selector
-  document.querySelectorAll('#su-groups .gc-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('#su-groups .gc-btn').forEach(function(x){x.classList.remove('active')});
-      b.classList.add('active');
-    });
-  });
-  // name mode selector
-  document.querySelectorAll('#su-namemode .nm-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('#su-namemode .nm-btn').forEach(function(x){x.classList.remove('active')});
-      b.classList.add('active');
-    });
-  });
-
+  // genRoomId を先に定義
   window.genRoomId = function(){
-    document.getElementById('su-room').value = randId();
+    const id = randId();
+    document.getElementById('su-room').value = id;
+    const disp = document.getElementById('su-room-display');
+    if (disp) disp.textContent = id;
   };
+
+  // DOMContentLoaded後にイベント登録・初期化
+  document.addEventListener('DOMContentLoaded', function(){
+    // GAS URL未設定なら警告
+    if (!GAS_URL) {
+      const card = document.querySelector('.setup-card');
+      const warn = document.createElement('div');
+      warn.style.cssText = 'background:#FFF0ED;border:1.5px solid var(--danger);border-radius:10px;padding:12px 14px;color:var(--danger);font-size:13px;font-weight:700;line-height:1.6';
+      warn.innerHTML = '⚠️ GAS URLが未設定です<br><span style="font-weight:400;color:var(--text)">index.html の <code style="background:#fff;padding:1px 5px;border-radius:3px;font-family:monospace">DEFAULT_GAS_URL</code> にWebアプリのURLを貼ってください</span>';
+      card.insertBefore(warn, card.children[1]);
+    }
+
+    // ルームID自動生成（表示は非表示にして内部値だけ保持）
+    genRoomId();
+
+    // group count selector
+    document.querySelectorAll('#su-groups .gc-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.querySelectorAll('#su-groups .gc-btn').forEach(function(x){x.classList.remove('active')});
+        b.classList.add('active');
+      });
+    });
+
+    // name mode selector
+    document.querySelectorAll('#su-namemode .nm-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.querySelectorAll('#su-namemode .nm-btn').forEach(function(x){x.classList.remove('active')});
+        b.classList.add('active');
+      });
+    });
+  });
 
   window.startTeacher = async function(){
     const question = document.getElementById('su-question').value.trim();
